@@ -217,7 +217,6 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 
 	if (serverhit)
 	  {
-	    got_serverhit++;
 	    if ((serv->flags & SERV_NO_REBIND) && norebind)	
 	      *norebind = 1;
 	    else

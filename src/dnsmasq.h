@@ -1514,7 +1514,7 @@ void ubus_event_bcast(const char *type, const char *mac, const char *ip, const c
 /* ipset.c */
 #ifdef HAVE_IPSET
 void ipset_init(void);
-int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, int remove);
+int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, int remove, int ttl);
 #endif
 
 /* helper.c */

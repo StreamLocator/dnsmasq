@@ -64,6 +64,9 @@ struct my_nfgenmsg {
         __be16    res_id;               /* resource id */
 };
 
+#define IPSET_ATTR_TIMEOUT 6
+#define DEFAULT_TTL 30 * 60
+
 
 /* data structure size in here is fixed */
 #define BUFF_SZ 256
@@ -93,12 +96,13 @@ void ipset_init(void)
   die (_("failed to create IPset control socket: %s"), NULL, EC_MISC);
 }
 
-static int new_add_to_ipset(const char *setname, const union all_addr *ipaddr, int af, int remove)
+static int new_add_to_ipset(const char *setname, const union all_addr *ipaddr, int af, int remove, int ttl)
 {
   struct nlmsghdr *nlh;
   struct my_nfgenmsg *nfg;
   struct my_nlattr *nested[2];
   uint8_t proto;
+  __be32 timeout = htonl(DEFAULT_TTL < ttl ? ttl : DEFAULT_TTL);
   int addrsz = (af == AF_INET6) ? IN6ADDRSZ : INADDRSZ;
 
   if (strlen(setname) >= IPSET_MAXNAMELEN) 
@@ -133,6 +137,8 @@ static int new_add_to_ipset(const char *setname, const union all_addr *ipaddr, i
 	   (af == AF_INET ? IPSET_ATTR_IPADDR_IPV4 : IPSET_ATTR_IPADDR_IPV6) | NLA_F_NET_BYTEORDER,
 	   addrsz, ipaddr);
   nested[1]->nla_len = (void *)buffer + NL_ALIGN(nlh->nlmsg_len) - (void *)nested[1];
+  add_attr(nlh, IPSET_ATTR_TIMEOUT, sizeof(timeout), &timeout);
+  buffer[nlh->nlmsg_len - 5] |= 0x40;
   nested[0]->nla_len = (void *)buffer + NL_ALIGN(nlh->nlmsg_len) - (void *)nested[0];
 	
   while (retry_send(sendto(ipset_sock, buffer, nlh->nlmsg_len, 0,
@@ -193,7 +199,7 @@ int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, i
     }
   
   if (ret != -1) 
-    ret = new_add_to_ipset(setname, ipaddr, af, remove);
+    ret = new_add_to_ipset(setname, ipaddr, af, remove, ttl);
 
   if (ret == -1)
      my_syslog(LOG_ERR, _("failed to update ipset %s: %s"), setname, strerror(errno));

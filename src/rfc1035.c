@@ -875,7 +875,7 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
 			      while (*ipsets_cur)
 				{
 				  log_query((flags & (F_IPV4 | F_IPV6)) | F_IPSET, name, &addr, *ipsets_cur);
-				  add_to_ipset(*ipsets_cur++, &addr, flags, 0);
+				  add_to_ipset(*ipsets_cur++, &addr, flags, 0, cttl);
 				}
 			    }
 #endif

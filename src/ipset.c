@@ -70,7 +70,7 @@ struct my_nfgenmsg {
 
 #define NL_ALIGN(len) (((len)+3) & ~(3))
 static const struct sockaddr_nl snl = { .nl_family = AF_NETLINK };
-static int ipset_sock, old_kernel;
+static int ipset_sock;
 static char *buffer;
 
 static inline void add_attr(struct nlmsghdr *nlh, uint16_t type, size_t len, const void *data)
@@ -85,13 +85,7 @@ static inline void add_attr(struct nlmsghdr *nlh, uint16_t type, size_t len, con
 
 void ipset_init(void)
 {
-  old_kernel = (daemon->kernel_version < KERNEL_VERSION(2,6,32));
-  
-  if (old_kernel && (ipset_sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) != -1)
-    return;
-  
-  if (!old_kernel && 
-      (buffer = safe_malloc(BUFF_SZ)) &&
+  if ((buffer = safe_malloc(BUFF_SZ)) &&
       (ipset_sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER)) != -1 &&
       (bind(ipset_sock, (struct sockaddr *)&snl, sizeof(snl)) != -1))
     return;
@@ -196,16 +190,10 @@ int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, i
   if (flags & F_IPV6)
     {
       af = AF_INET6;
-      /* old method only supports IPv4 */
-      if (old_kernel)
-	{
-	  errno = EAFNOSUPPORT ;
-	  ret = -1;
-	}
     }
   
   if (ret != -1) 
-    ret = old_kernel ? old_add_to_ipset(setname, ipaddr, remove) : new_add_to_ipset(setname, ipaddr, af, remove);
+    ret = new_add_to_ipset(setname, ipaddr, af, remove);
 
   if (ret == -1)
      my_syslog(LOG_ERR, _("failed to update ipset %s: %s"), setname, strerror(errno));

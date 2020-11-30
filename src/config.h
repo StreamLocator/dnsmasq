@@ -197,6 +197,7 @@ RESOLVFILE
 /* #define HAVE_CONNTRACK */
 #define HAVE_REGEX
 #define HAVE_REGEX_IPSET
+#define HAVE_SL_ADDR_MAP
 /* #define HAVE_DNSSEC */
 
 

@@ -531,6 +531,7 @@ union mysockaddr {
 #define SERV_NO_REBIND      2048  /* inhibit dns-rebind protection */
 #define SERV_IS_REGEX       4096  /* server entry is a regex */
 #define SERV_FROM_FILE      4096  /* read from --servers-file */
+#define SERV_ADDR_MAP       5120  /* addressmap */
 #define SERV_LOOP           8192  /* server causes forwarding loop */
 #define SERV_DO_DNSSEC     16384  /* Validate DNSSEC when using this server */
 #define SERV_GOT_TCP       32768  /* Got some data from the TCP connection */
@@ -563,6 +564,10 @@ struct server {
   unsigned int queries, failed_queries;
 #ifdef HAVE_LOOP
   u32 uid;
+#endif
+#ifdef HAVE_SL_ADDR_MAP
+  uint32_t net;
+  int bits;
 #endif
   struct server *next; 
 };
@@ -1358,6 +1363,11 @@ int send_from(int fd, int nowild, char *packet, size_t len,
 void resend_query(void);
 struct randfd *allocate_rfd(int family);
 void free_rfd(struct randfd *rfd);
+
+#ifdef HAVE_SL_ADDR_MAP
+uint32_t crc32b(unsigned char *message);
+uint32_t set_forward_ip(uint32_t net, int bits, char *domain);
+#endif
 
 /* network.c */
 int indextoname(int fd, int index, char *name);

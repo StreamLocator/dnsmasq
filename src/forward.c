@@ -156,12 +156,13 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 	*type = SERV_FOR_NODOTS;
 	if ((serv->flags & SERV_NO_REBIND) && norebind)
 	  *norebind = 1;
-	else if (serv->flags & SERV_NO_ADDR)
+	else if (serv->flags & SERV_NO_ADDR && !(serv->flags & SERV_ADDR_MAP)) {
 	  flags = F_NXDOMAIN;
+	}
 	else if (serv->flags & SERV_LITERAL_ADDRESS)
 	  { 
 	    /* literal address = '#' -> return all-zero address for IPv4 and IPv6 */
-	    if ((serv->flags & SERV_USE_RESOLV) && (qtype & (F_IPV6 | F_IPV4)))
+	    if ((serv->flags & SERV_USE_RESOLV) && (qtype & (F_IPV6 | F_IPV4)) && !(serv->flags & SERV_ADDR_MAP))
 	      {
 		memset(&zero, 0, sizeof(zero));
 		flags = qtype;
@@ -170,8 +171,18 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 	    else if (sflag & qtype)
 	      {
 		flags = sflag;
-		if (serv->addr.sa.sa_family == AF_INET) 
-		  *addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+		if (serv->addr.sa.sa_family == AF_INET)
+#ifdef HAVE_SL_ADDR_MAP
+				{
+					if ((serv->flags & SERV_ADDR_MAP) == SERV_ADDR_MAP) {
+						uint32_t result = set_forward_ip(serv->net, serv->bits, qdomain);
+						serv->addr.in.sin_addr.s_addr = htonl(result);
+					}
+					*addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+				}
+#else
+			    *addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+#endif
 		else
 		  *addrpp = (union all_addr *)&serv->addr.in6.sin6_addr;
 	      }
@@ -2497,7 +2508,29 @@ static unsigned short get_id(void)
   return ret;
 }
 
+#ifdef HAVE_SL_ADDR_MAP
+uint32_t crc32b(unsigned char *message) {
+	uint32_t crc;
+	int loop;
 
+	crc = 0xFFFFFFFF;
+	while (*message) {
+		crc = crc ^ *message++;
+		loop=8;
+		while (loop--) {
+			crc = (crc >> 1) ^ (0xEDB88320 & (-(crc&1)));
+		}
+	}
+	return ~crc;
+}
+
+uint32_t set_forward_ip(uint32_t net, int bits, char *domain) {
+	uint32_t net_mask = 0xFFFFFFFF << (32-bits);
+	uint32_t crc_mask = net_mask ^ 0xFFFFFFFF;
+
+	return (net & net_mask) | (crc32b(domain) & crc_mask);
+}
+#endif
 
 
 

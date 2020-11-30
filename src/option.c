@@ -167,6 +167,10 @@ struct myoption {
 #define LOPT_IGNORE_CLID   358
 #define LOPT_SINGLE_PORT   359
 #define LOPT_SCRIPT_TIME   360
+
+#ifdef HAVE_SL_ADDR_MAP
+#define LOPT_ADDR_MAP      400
+#endif
  
 #ifdef HAVE_GETOPT_LONG
 static const struct option opts[] =  
@@ -326,6 +330,9 @@ static const struct myoption opts[] =
     { "dnssec-check-unsigned", 2, 0, LOPT_DNSSEC_CHECK },
     { "dnssec-no-timecheck", 0, 0, LOPT_DNSSEC_TIME },
     { "dnssec-timestamp", 1, 0, LOPT_DNSSEC_STAMP },
+#ifdef HAVE_SL_ADDR_MAP
+ { "addressmap", 1, 0, LOPT_ADDR_MAP },
+#endif
     { "dhcp-relay", 1, 0, LOPT_RELAY },
     { "ra-param", 1, 0, LOPT_RA_PARAM },
     { "quiet-dhcp", 0, 0, LOPT_QUIET_DHCP },
@@ -432,6 +439,9 @@ static struct {
   { '2', ARG_DUP, "<interface>", gettext_noop("Do not provide DHCP on this interface, only provide DNS."), NULL },
   { '3', ARG_DUP, "[=tag:<tag>]...", gettext_noop("Enable dynamic address allocation for bootp."), NULL },
   { '4', ARG_DUP, "set:<tag>,<mac address>", gettext_noop("Map MAC address (with wildcards) to option set."), NULL },
+#ifdef LOPT_ADDR_MAP
+  { LOPT_ADDR_MAP, ARG_DUP, "/<domain>/<ipaddr>/<range>", gettext_noop("Return ipaddr for all hosts in specified domains."), NULL },
+#endif
   { LOPT_BRIDGE, ARG_DUP, "<iface>,<alias>..", gettext_noop("Treat DHCP requests on aliases as arriving from interface."), NULL },
   { LOPT_SHARED_NET, ARG_DUP, "<iface>|<addr>,<addr>", gettext_noop("Specify extra networks sharing a broadcast domain for DHCP"), NULL},
   { '5', OPT_NO_PING, NULL, gettext_noop("Disable ICMP echo address checking in the DHCP server."), NULL },
@@ -2545,6 +2555,9 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
     case LOPT_LOCAL:     /*  --local */
     case 'A':            /*  --address */
     case LOPT_NO_REBIND: /*  --rebind-domain-ok */
+#ifdef HAVE_SL_ADDR_MAP
+ case LOPT_ADDR_MAP:
+#endif
       {
 	struct server *serv, *newlist = NULL;
 	
@@ -2588,6 +2601,25 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 		newlist = serv;
 		serv->domain = domain;
 		serv->flags = domain ? SERV_HAS_DOMAIN : SERV_FOR_NODOTS;
+#ifdef HAVE_SL_ADDR_MAP
+   if (option == LOPT_ADDR_MAP) {
+     char* colon = strchr(end, ':');
+     if (colon != NULL) {
+       char* range = (colon + 1);
+       if (!atoi_check(range, &serv->bits)) {
+         ret_err("bad subnet range");
+       }
+       struct in_addr subnet_addr;
+       int len = (colon - end) / sizeof(char);
+       end[len] = '\0';
+       if(!inet_aton(end, &subnet_addr)) {
+         ret_err("bad subnet address");
+       }
+       serv->net = ntohl(subnet_addr.s_addr);
+       serv->flags |= SERV_ADDR_MAP;
+     }
+   }
+#endif
     if (regex || nregex)
       {
 #ifdef HAVE_REGEX
@@ -2638,7 +2670,7 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	if (servers_only && option == 'S')
 	  newlist->flags |= SERV_FROM_FILE;
 	
-	if (option == 'A')
+	if (option == 'A' || option == LOPT_ADDR_MAP)
 	  {
 	    newlist->flags |= SERV_LITERAL_ADDRESS;
 	    if (!(newlist->flags & SERV_TYPE))

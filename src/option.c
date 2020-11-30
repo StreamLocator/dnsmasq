@@ -2740,6 +2740,32 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	     while ((end = split_chr(arg, '/'))) 
 	       {
 		 char *domain = NULL;
+     char *real_end = arg + strlen(arg);
+    if ((*arg == ':' && *(real_end - 1) == ':') || (*arg == '~' && *(real_end - 1) == '~')){
+#ifdef HAVE_REGEX
+#ifdef HAVE_REGEX_IPSET
+      const char *error;
+      int erroff;
+      char *regex = NULL;
+      unsigned char nregex = *arg == '~' && *(real_end - 1) == '~';
+      *(real_end - 1) = '\0';
+      regex = arg + 1;
+
+      ipsets->next = opt_malloc(sizeof(struct ipsets));
+      ipsets = ipsets->next;
+      memset(ipsets, 0, sizeof(struct ipsets));
+      ipsets->regex = pcre_compile(regex, 0, &error, &erroff, NULL);
+      ipsets->nregex = nregex;
+
+      if (!ipsets->regex)
+        my_syslog(LOG_INFO, _("Failed to compile regex pattern %s, error: %s"), regex, error);
+      ipsets->pextra = pcre_study(ipsets->regex, 0, &error);
+      ipsets->domain_type = IPSET_IS_REGEX;
+#endif
+#else
+      ret_err("Using a regex while server was configured without regex support!");
+#endif
+    }else{
 		 /* elide leading dots - they are implied in the search algorithm */
 		 while (*arg == '.')
 		   arg++;
@@ -2752,6 +2778,12 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 		 ipsets = ipsets->next;
 		 memset(ipsets, 0, sizeof(struct ipsets));
 		 ipsets->domain = domain;
+#ifdef HAVE_REGEX
+#ifdef HAVE_REGEX_IPSET
+    ipsets->domain_type = IPSET_IS_DOMAIN;
+#endif
+#endif
+    }
 		 arg = end;
 	       }
 	   } 
@@ -2760,6 +2792,11 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	     ipsets->next = opt_malloc(sizeof(struct ipsets));
 	     ipsets = ipsets->next;
 	     memset(ipsets, 0, sizeof(struct ipsets));
+#ifdef HAVE_REGEX
+#ifdef HAVE_REGEX_IPSET
+      ipsets->domain_type = IPSET_IS_DOMAIN;
+#endif
+#endif
 	     ipsets->domain = "";
 	   }
 	 

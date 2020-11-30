@@ -116,6 +116,10 @@ HAVE_REGEX
    Define this if you want to link against lib pcre to get regex
    support in "address=" matches
 
+HAVE_REGEX_IPSET
+   Define this if you want to link against lib pcre to get regex
+   support in "ipset=" matches
+
 HAVE_IPSET
     define this to include the ability to selectively add resolved ip addresses
     to given ipsets.
@@ -192,6 +196,7 @@ RESOLVFILE
 /* #define HAVE_LIBIDN2 */
 /* #define HAVE_CONNTRACK */
 #define HAVE_REGEX
+#define HAVE_REGEX_IPSET
 /* #define HAVE_DNSSEC */
 
 
@@ -378,7 +383,12 @@ static char *compile_opts =
 #ifndef HAVE_REGEX
 "no-"
 #endif
-"regex "
++"regex "
+#if defined(HAVE_IPSET) && defined(HAVE_REGEX) && defined(HAVE_REGEX_IPSET)
+"(+ipset) "
+#else
+" "
+#endif
 #ifndef HAVE_UBUS
 "no-"
 #endif

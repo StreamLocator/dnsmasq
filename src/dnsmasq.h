@@ -567,10 +567,25 @@ struct server {
   struct server *next; 
 };
 
+#ifdef HAVE_REGEX
+#ifdef HAVE_REGEX_IPSET
+ #define IPSET_IS_DOMAIN 0x01
+ #define IPSET_IS_REGEX 0x02
+#endif
+#endif
+
 struct ipsets {
   char **sets;
   char *domain;
   struct ipsets *next;
+#ifdef HAVE_REGEX
+#ifdef HAVE_REGEX_IPSET
+  pcre *regex;
+  pcre_extra *pextra;
+  unsigned char nregex;
+  unsigned char domain_type;
+#endif
+#endif
 };
 
 struct irec {

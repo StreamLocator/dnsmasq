@@ -383,7 +383,7 @@ static char *compile_opts =
 #ifndef HAVE_REGEX
 "no-"
 #endif
-+"regex "
+"regex "
 #if defined(HAVE_IPSET) && defined(HAVE_REGEX) && defined(HAVE_REGEX_IPSET)
 "(+ipset) "
 #else

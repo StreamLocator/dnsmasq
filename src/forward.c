@@ -119,8 +119,13 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
   struct server *serv;
   unsigned int flags = 0;
   static union all_addr zero;
+
+  unsigned int domainlen = 0;
+  char *matchstart = NULL;
+  int got_serverhit = 0;
   
   for (serv = daemon->servers; serv; serv=serv->next)
+  	{
     if (qtype == F_DNSSECOK && !(serv->flags & SERV_DO_DNSSEC))
       continue;
     /* domain matches take priority over NODOTS matches */
@@ -153,14 +158,48 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 	      flags = F_NOERR;
 	  } 
       }
-    else if (serv->flags & SERV_HAS_DOMAIN)
+    else if ((serv->flags & SERV_HAS_DOMAIN) ||
+    				(!(serv->flags & SERV_HAS_DOMAIN) && (serv->flags & SERV_IS_REGEX)))
       {
-	unsigned int domainlen = strlen(serv->domain);
-	char *matchstart = qdomain + namelen - domainlen;
-	if (namelen >= domainlen &&
-	    hostname_isequal(matchstart, serv->domain) &&
-	    (domainlen == 0 || namelen == domainlen || *(matchstart-1) == '.' ))
+	if (serv->domain == NULL && !(serv->flags & SERV_IS_REGEX))
+	  continue;
+	int serverhit = 0;
+#ifdef HAVE_REGEX
+	if (serv->flags & SERV_IS_REGEX)
+ 	  {
+	    /* if we've already found a serverhit, and then we find a
+	       regex hit, it was a negative match, so skip the regex
+	       hit */
+    if (!got_serverhit)
+	      {
+		int captcount = 0;
+		if (pcre_fullinfo(serv->regex, serv->pextra, PCRE_INFO_CAPTURECOUNT, &captcount) == 0)
+		  {
+		    /* C99 dyn-array, or alloca must be used */
+		    int ovect[(captcount + 1) * 3];
+		    if (pcre_exec(serv->regex, serv->pextra, qdomain, namelen, 0, 0, ovect, (captcount + 1) * 3) > 0)
+		      {
+			domainlen = (unsigned int) (ovect[1] - ovect[0]);
+			if (domainlen >= matchlen)
+			    serverhit = 1;
+		      }
+		  }
+      }
+	  }
+	else
+#endif
 	  {
+	    domainlen = strlen(serv->domain);
+	    matchstart = qdomain + namelen - domainlen;
+	    if (namelen >= domainlen &&
+		hostname_isequal(matchstart, serv->domain) &&
+		(domainlen == 0 || namelen == domainlen || *(matchstart-1) == '.' ))
+      serverhit = 1;
+	  }
+
+	if (serverhit)
+	  {
+	    got_serverhit++;
 	    if ((serv->flags & SERV_NO_REBIND) && norebind)	
 	      *norebind = 1;
 	    else
@@ -216,7 +255,8 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 	      }
 	  }
       }
-  
+ }
+ 
   if (flags == 0 && !(qtype & (F_QUERY | F_DNSSECOK)) && 
       option_bool(OPT_NODOTS_LOCAL) && !strchr(qdomain, '.') && namelen != 0)
     /* don't forward A or AAAA queries for simple names, except the empty name */

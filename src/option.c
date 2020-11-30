@@ -2558,13 +2558,18 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 	      arg++;
 	    while (rebind || (end = split_chr(arg, '/')))
 	      {
-		char *domain = NULL, *regex = NULL;
+		char *domain = NULL, *regex = NULL, *nregex = NULL;
     char *real_end = arg + strlen(arg);
 
     if (*arg == ':' && *(real_end - 1) == ':')
      {
         *(real_end - 1) = '\0';
         regex = arg + 1;
+     }
+     if (*arg == '~' && *(real_end - 1) == '~')
+     {
+        *(real_end - 1) = '\0';
+        nregex = arg + 1;
      }
    else
      {
@@ -2583,18 +2588,33 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
 		newlist = serv;
 		serv->domain = domain;
 		serv->flags = domain ? SERV_HAS_DOMAIN : SERV_FOR_NODOTS;
-    if (regex)
+    if (regex || nregex)
       {
 #ifdef HAVE_REGEX
-       const char *error;
-       int erroff;
-       my_syslog(LOG_INFO, _("Compiling regex pattern %s"), regex);
-       serv->regex = pcre_compile(regex, 0, &error, &erroff, NULL);
+       if (regex)
+         {
+     const char *error;
+     int erroff;
+     my_syslog(LOG_INFO, _("Compiling regex pattern %s"), regex);
+     serv->regex = pcre_compile(regex, 0, &error, &erroff, NULL);
 
-       if (!serv->regex)
-         ret_err(error);
-       serv->flags |= SERV_IS_REGEX;
-       serv->pextra = pcre_study(serv->regex, 0, &error);
+     if (!serv->regex)
+       my_syslog(LOG_INFO, _("Failed to compile regex pattern %s, error: %s"), regex, error);
+     serv->flags |= SERV_IS_REGEX;
+     serv->pextra = pcre_study(serv->regex, 0, &error);
+         }
+       else if (nregex)
+         {
+     const char *error;
+     int erroff;
+     my_syslog(LOG_INFO, _("Compiling negative regex pattern %s"), nregex);
+     serv->nregex = pcre_compile(nregex, 0, &error, &erroff, NULL);
+
+     if (!serv->nregex)
+       my_syslog(LOG_INFO, _("Failed to compile negative regex pattern %s, error: %s"), nregex, error);
+     serv->flags |= SERV_IS_REGEX;
+     serv->pextra = pcre_study(serv->nregex, 0, &error);
+         }
 #else
        ret_err("Using a regex while server was configured without regex support!");
 #endif

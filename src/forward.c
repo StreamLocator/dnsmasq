@@ -122,7 +122,28 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 
   unsigned int domainlen = 0;
   char *matchstart = NULL;
-  int got_serverhit = 0;
+
+#ifdef HAVE_REGEX
+  /* First iterate through any nregex to see if an early abort is needed */
+  for (serv = daemon->servers; serv; serv=serv->next)
+    {
+      if (serv->flags & SERV_IS_REGEX)
+	{
+	  int captcount = 0;
+	  if (pcre_fullinfo(serv->nregex, serv->pextra, PCRE_INFO_CAPTURECOUNT, &captcount) == 0)
+	    {
+	      /* C99 dyn-array, or alloca must be used */
+	      int ovect[(captcount + 1) * 3];
+	      if (pcre_exec(serv->nregex, serv->pextra, qdomain, namelen, 0, 0, ovect, (captcount + 1) * 3) > 0)
+		{
+		  domainlen = (unsigned int) (ovect[1] - ovect[0]);
+		  if (domainlen >= matchlen)
+		      return flags;
+		}
+	    }
+	}
+    }
+#endif
   
   for (serv = daemon->servers; serv; serv=serv->next)
   	{
@@ -170,19 +191,16 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 	    /* if we've already found a serverhit, and then we find a
 	       regex hit, it was a negative match, so skip the regex
 	       hit */
-    if (!got_serverhit)
+    int captcount = 0;
+	  if (pcre_fullinfo(serv->regex, serv->pextra, PCRE_INFO_CAPTURECOUNT, &captcount) == 0)
 	      {
-		int captcount = 0;
-		if (pcre_fullinfo(serv->regex, serv->pextra, PCRE_INFO_CAPTURECOUNT, &captcount) == 0)
+		/* C99 dyn-array, or alloca must be used */
+		int ovect[(captcount + 1) * 3];
+		if (pcre_exec(serv->regex, serv->pextra, qdomain, namelen, 0, 0, ovect, (captcount + 1) * 3) > 0)
 		  {
-		    /* C99 dyn-array, or alloca must be used */
-		    int ovect[(captcount + 1) * 3];
-		    if (pcre_exec(serv->regex, serv->pextra, qdomain, namelen, 0, 0, ovect, (captcount + 1) * 3) > 0)
-		      {
-			domainlen = (unsigned int) (ovect[1] - ovect[0]);
-			if (domainlen >= matchlen)
-			    serverhit = 1;
-		      }
+		    domainlen = (unsigned int) (ovect[1] - ovect[0]);
+		    if (domainlen >= matchlen)
+		      serverhit = 1;
 		  }
       }
 	  }

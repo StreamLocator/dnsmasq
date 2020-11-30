@@ -555,6 +555,7 @@ struct server {
   char *domain; /* set if this server only handles a domain. */ 
 #ifdef HAVE_REGEX
   pcre *regex;
+  pcre *nregex;
   pcre_extra *pextra;
 #endif
   int flags, tcpfd, edns_pktsz;

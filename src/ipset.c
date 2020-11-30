@@ -189,7 +189,7 @@ static int old_add_to_ipset(const char *setname, const union all_addr *ipaddr, i
 
 
 
-int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, int remove)
+int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, int remove, int ttl)
 {
   int ret = 0, af = AF_INET;
 

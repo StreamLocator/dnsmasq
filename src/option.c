@@ -2617,6 +2617,7 @@ static int one_opt(int option, char *arg, char *errstr, char *gen_err, int comma
        }
        serv->net = ntohl(subnet_addr.s_addr);
        serv->flags |= SERV_ADDR_MAP;
+       serv->flags &= ~SERV_USE_RESOLV;
      }
    }
 #endif

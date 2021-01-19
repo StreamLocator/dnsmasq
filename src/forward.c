@@ -258,10 +258,10 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 		    if (serv->flags & SERV_NO_ADDR)
 		      flags = F_NXDOMAIN;
 		    else if (serv->flags & SERV_LITERAL_ADDRESS)
-		      {
+		       {
 			 /* literal address = '#' -> return all-zero address for IPv4 and IPv6 */
 			if ((serv->flags & SERV_USE_RESOLV) && (qtype & (F_IPV6 | F_IPV4)))
-			  {			    
+			  {
 			    memset(&zero, 0, sizeof(zero));
 			    flags = qtype;
 			    *addrpp = &zero;
@@ -269,8 +269,18 @@ static unsigned int search_servers(time_t now, union all_addr **addrpp, unsigned
 			else if (sflag & qtype)
 			  {
 			    flags = sflag;
-			    if (serv->addr.sa.sa_family == AF_INET) 
-			      *addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+			    if (serv->addr.sa.sa_family == AF_INET)
+#ifdef HAVE_SL_ADDR_MAP
+				{
+					if ((serv->flags & SERV_ADDR_MAP) == SERV_ADDR_MAP) {
+						uint32_t result = set_forward_ip(serv->net, serv->bits, qdomain);
+						serv->addr.in.sin_addr.s_addr = htonl(result);
+					}
+					*addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+				}
+#else
+			    *addrpp = (union all_addr *)&serv->addr.in.sin_addr;
+#endif
 			    else
 			      *addrpp = (union all_addr *)&serv->addr.in6.sin6_addr;
 			  }

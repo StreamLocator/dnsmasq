@@ -531,10 +531,10 @@ union mysockaddr {
 #define SERV_NO_REBIND      2048  /* inhibit dns-rebind protection */
 #define SERV_IS_REGEX       4096  /* server entry is a regex */
 #define SERV_FROM_FILE      4096  /* read from --servers-file */
-#define SERV_ADDR_MAP       5120  /* addressmap */
 #define SERV_LOOP           8192  /* server causes forwarding loop */
 #define SERV_DO_DNSSEC     16384  /* Validate DNSSEC when using this server */
 #define SERV_GOT_TCP       32768  /* Got some data from the TCP connection */
+#define SERV_ADDR_MAP      65536  /* addressmap */
 
 struct serverfd {
   int fd;

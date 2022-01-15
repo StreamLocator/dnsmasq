@@ -179,7 +179,7 @@ RESOLVFILE
 #define HAVE_TFTP
 #define HAVE_SCRIPT
 #define HAVE_AUTH
-// #define HAVE_IPSET 
+#define HAVE_IPSET 
 #define HAVE_NFSET
 #define HAVE_LOOP
 #define HAVE_DUMPFILE
@@ -350,6 +350,10 @@ HAVE_SOCKADDR_SA_LEN
 
 #if defined(NO_IPSET)
 #undef HAVE_IPSET
+#endif
+
+#if defined(NO_NFSET)
+#undef HAVE_NFSET
 #endif
 
 #ifdef NO_LOOP

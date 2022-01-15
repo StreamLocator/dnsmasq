@@ -1527,6 +1527,13 @@ void ipset_init(void);
 int add_to_ipset(const char *setname, const union all_addr *ipaddr, int flags, int remove, int ttl);
 #endif
 
+/* nfset.c */
+#ifdef HAVE_NFSET
+void nfset_init(void);
+int is_nfset(const char* setname);
+int add_to_nfset(const char *setname, const union all_addr *ipaddr, int flags, int remove, int ttl);
+#endif
+
 /* helper.c */
 #if defined(HAVE_SCRIPT)
 int create_helper(int event_fd, int err_fd, uid_t uid, gid_t gid, long max_fd);

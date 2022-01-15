@@ -663,7 +663,7 @@ static size_t process_reply(struct dns_header *header, time_t now, struct server
   (void)do_bit;
   (void)bogusanswer;
 
-#ifdef HAVE_IPSET
+#if defined(HAVE_IPSET) || defined(HAVE_NFSET)
   if (daemon->ipsets && extract_request(header, n, daemon->namebuff, NULL))
     {
       /* Similar algorithm to search_servers. */

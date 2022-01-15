@@ -586,7 +586,7 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
   int i, j, qtype, qclass, aqtype, aqclass, ardlen, res, searched_soa = 0;
   unsigned long ttl = 0;
   union all_addr addr;
-#ifdef HAVE_IPSET
+#if defined(HAVE_IPSET) || defined(HAVE_NFSET)
   char **ipsets_cur;
 #else
   (void)ipsets; /* unused */
@@ -868,14 +868,25 @@ int extract_addresses(struct dns_header *header, size_t qlen, char *name, time_t
 				}
 			    }
 
-#ifdef HAVE_IPSET
+#if defined(HAVE_IPSET) || defined (HAVE_NFSET)
 			  if (ipsets && (flags & (F_IPV4 | F_IPV6)))
 			    {
 			      ipsets_cur = ipsets;
 			      while (*ipsets_cur)
 				{
 				  log_query((flags & (F_IPV4 | F_IPV6)) | F_IPSET, name, &addr, *ipsets_cur);
-				  add_to_ipset(*ipsets_cur++, &addr, flags, 0, cttl);
+#ifdef HAVE_NFSET
+				  if (is_nfset(*ipsets_cur)) {
+				      add_to_nfset(*ipsets_cur++, &addr, flags, 0, cttl);
+				  } else {
+#endif
+#ifdef HAVE_IPSET				  
+				      add_to_ipset(*ipsets_cur++, &addr, flags, 0, cttl);
+#endif
+#ifdef HAVE_NFSET
+				  }
+#endif
+
 				}
 			    }
 #endif

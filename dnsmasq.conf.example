@@ -83,7 +83,14 @@
 
 # Add the IPs of all queries to yahoo.com, google.com, and their
 # subdomains to the vpn and search ipsets:
+# the same command can add nftable sets, if the set name starts 
+# with `ipv4 ` or `ipv6 ` it is treated as an nftable set, and 
+# not an iptable set.  Either way, its an IP Set.
+# nftable set names have the format: [ipv4/ipv6] <table type> <table name> <set name>
+# eg: ipv4 inet inet_table myset
+#   : ipv6 inet inet_table myset6 
 #ipset=/yahoo.com/google.com/vpn,search
+#ipset=/yahoo.com/google.com/ipv4 inet inet_table myset,ipv6 inet inet_table myset6
 
 # You can control how dnsmasq talks to a server: this forces
 # queries to 10.1.2.3 to be routed via eth1

@@ -317,10 +317,15 @@ int main (int argc, char **argv)
 
 #endif
 
-#ifdef HAVE_IPSET
+#if defined(HAVE_IPSET) || defined(HAVE_NFSET)
   if (daemon->ipsets)
     {
+#ifdef HAVE_IPSET      
       ipset_init();
+#endif
+#ifdef HAVE_NFSET
+      nfset_init();
+#endif
 #  ifdef HAVE_LINUX_NETWORK
       need_cap_net_admin = 1;
 #  endif

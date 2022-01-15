@@ -1,0 +1,7 @@
+{
+        "editor.formatOnSave": false,
+        "files.trimTrailingWhitespace": false,
+        "[c]": {
+                "editor.semanticHighlighting.enabled": true
+        }
+}
